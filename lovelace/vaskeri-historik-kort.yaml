@@ -1,0 +1,19 @@
+type: vertical-stack
+cards:
+  # Tidslinje: hvornår kørte din vask mens du var hjemme (sidste 7 dage)
+  - type: history-graph
+    title: Vask mens hjemme
+    hours_to_show: 168
+    entities:
+      - entity: binary_sensor.min_vask_koerer_mens_hjemme
+        name: Min vask (hjemme)
+      - entity: person.mads
+        name: Hjemme/ude
+
+  # Logbog: detaljer om hvornår det slog til/fra + hvilke maskiner
+  - type: logbook
+    title: Vaskeri-log
+    hours_to_show: 168
+    entities:
+      - binary_sensor.min_vask_koerer_mens_hjemme
+      - person.mads

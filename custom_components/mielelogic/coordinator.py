@@ -21,8 +21,10 @@ from .api import (
 from .const import (
     CONF_ACCESS_TOKEN,
     CONF_EXPIRES_AT,
+    CONF_PASSWORD,
     CONF_REFRESH_TOKEN,
     CONF_SCAN_INTERVAL,
+    CONF_USERNAME,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     LOGGER,
@@ -163,34 +165,60 @@ class MieleLogicDataUpdateCoordinator(DataUpdateCoordinator[MieleLogicData]):
     async def _async_update_data(self) -> MieleLogicData:
         """Fetch the latest data, refreshing the access token if needed."""
         try:
-            # Refresh the token proactively if it is missing or near expiry.
-            changed = await self.client.async_ensure_token(
-                margin_seconds=TOKEN_REFRESH_MARGIN.total_seconds()
-            )
-            if changed:
-                self._persist_tokens()
-
-            data = MieleLogicData()
-
-            # 1. Account balance + list of accessible laundries.
-            await self._async_load_accounts(data)
-
-            # 2. Live machine states for every accessible laundry.
-            await self._async_load_machines(data)
-
-            # 3. Recent transaction history.
-            await self._async_load_transactions(data)
-
-            # 4. Link transactions to machines (which run is "mine").
-            self._link_transactions(data)
-
-            return data
+            try:
+                # Refresh the token proactively if it is missing or near expiry,
+                # then fetch. A failure here means the access or refresh token
+                # was rejected (raises MieleLogicAuthError).
+                if await self.client.async_ensure_token(
+                    margin_seconds=TOKEN_REFRESH_MARGIN.total_seconds()
+                ):
+                    self._persist_tokens()
+                return await self._async_fetch_all()
+            except MieleLogicAuthError:
+                # The token chain was rejected (access or refresh token
+                # invalidated server-side, e.g. by another login). Recover
+                # automatically using the stored credentials before giving up.
+                LOGGER.debug("Auth rejected; re-logging in with stored credentials")
+                await self._async_relogin()
+                return await self._async_fetch_all()
 
         except MieleLogicAuthError as err:
-            # Token is invalid and could not be refreshed -> trigger reauth.
+            # Even a fresh login failed (password changed) -> trigger reauth.
             raise ConfigEntryAuthFailed(str(err)) from err
         except MieleLogicConnectionError as err:
             raise UpdateFailed(str(err)) from err
+
+    async def _async_relogin(self) -> None:
+        """Re-authenticate with the stored username/password and persist tokens.
+
+        Used to recover when the refresh token has been invalidated (for
+        example by a concurrent login on the web portal). Raises
+        MieleLogicAuthError if the stored credentials are no longer valid.
+        """
+        username = self.entry.data.get(CONF_USERNAME)
+        password = self.entry.data.get(CONF_PASSWORD)
+        if not username or not password:
+            raise MieleLogicAuthError("No stored credentials to re-login with")
+        await self.client.async_login(username, password)
+        self._persist_tokens()
+
+    async def _async_fetch_all(self) -> MieleLogicData:
+        """Fetch all data sources and link them together."""
+        data = MieleLogicData()
+
+        # 1. Account balance + list of accessible laundries.
+        await self._async_load_accounts(data)
+
+        # 2. Live machine states for every accessible laundry.
+        await self._async_load_machines(data)
+
+        # 3. Recent transaction history.
+        await self._async_load_transactions(data)
+
+        # 4. Link transactions to machines (which run is "mine").
+        self._link_transactions(data)
+
+        return data
 
     async def _async_load_accounts(self, data: MieleLogicData) -> None:
         """Populate balance, currency and the laundry list from /accounts."""

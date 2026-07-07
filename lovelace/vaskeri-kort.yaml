@@ -1,0 +1,70 @@
+type: custom:stack-in-card
+mode: vertical
+cards:
+  - type: custom:mushroom-title-card
+    title: Vaskeri
+    subtitle: 'Saldo: {{ states("sensor.mielelogic_balance") }} DKK'
+
+  - type: custom:mushroom-title-card
+    title: Finlandsgade 18. kld.
+  - type: custom:auto-entities
+    card:
+      type: grid
+      columns: 1
+      square: false
+    card_param: cards
+    sort:
+      method: attribute
+      attribute: machine_number
+      numeric: true
+    filter:
+      include:
+        - attributes:
+            laundry_number: "9894"
+          options:
+            type: custom:mushroom-template-card
+            primary: '{{ state_attr(entity, "unit_name") }}'
+            secondary: >-
+              {% set r = state_attr(entity, "remaining_minutes") %}
+              {{ "Resttid " ~ r ~ " min" if r is not none else "Ledig" }}
+            icon: >-
+              {{ "mdi:tumble-dryer" if state_attr(entity, "machine_symbol") == 1
+                 else "mdi:washing-machine" }}
+            icon_color: >-
+              {% set r = state_attr(entity, "remaining_minutes") %}
+              {% if state_attr(entity, "machine_color") != 2 %}green
+              {% elif state_attr(entity, "mine") %}blue
+              {% elif r is not none and r <= 5 %}orange
+              {% else %}red{% endif %}
+
+  - type: custom:mushroom-title-card
+    title: Helsingforsgade 11 (Dania Kollegiet)
+  - type: custom:auto-entities
+    card:
+      type: grid
+      columns: 1
+      square: false
+    card_param: cards
+    sort:
+      method: attribute
+      attribute: machine_number
+      numeric: true
+    filter:
+      include:
+        - attributes:
+            laundry_number: "9893"
+          options:
+            type: custom:mushroom-template-card
+            primary: '{{ state_attr(entity, "unit_name") }}'
+            secondary: >-
+              {% set r = state_attr(entity, "remaining_minutes") %}
+              {{ "Resttid " ~ r ~ " min" if r is not none else "Ledig" }}
+            icon: >-
+              {{ "mdi:tumble-dryer" if state_attr(entity, "machine_symbol") == 1
+                 else "mdi:washing-machine" }}
+            icon_color: >-
+              {% set r = state_attr(entity, "remaining_minutes") %}
+              {% if state_attr(entity, "machine_color") != 2 %}green
+              {% elif state_attr(entity, "mine") %}blue
+              {% elif r is not none and r <= 5 %}orange
+              {% else %}red{% endif %}

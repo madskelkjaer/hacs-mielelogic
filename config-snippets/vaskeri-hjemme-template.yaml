@@ -1,0 +1,64 @@
+# Læg dette ind i din configuration.yaml (under en eksisterende `template:` blok,
+# eller tilføj blokken hvis du ikke har en). Genstart/reload templates bagefter.
+#
+# Ret 'person.mads' til dit eget person-entity (Indstillinger -> Personer).
+
+template:
+  # ---- Numeriske "antal i brug"-sensorer til LANGTIDSSTATISTIK ----
+  # state_class: measurement => HA gemmer time-aggregater for evigt (aldrig
+  # purged), så du kan se travle tidspunkter over måneder/år.
+  - sensor:
+      - name: "Finlandsgade maskiner i brug"
+        unique_id: finlandsgade_maskiner_i_brug
+        unit_of_measurement: "maskiner"
+        state_class: measurement
+        icon: mdi:washing-machine
+        state: >
+          {{ states.sensor
+             | selectattr('attributes.laundry_number', 'defined')
+             | selectattr('attributes.laundry_number', 'equalto', '9894')
+             | selectattr('attributes.machine_color', 'equalto', 2)
+             | list | count }}
+
+      - name: "Helsingforsgade maskiner i brug"
+        unique_id: helsingforsgade_maskiner_i_brug
+        unit_of_measurement: "maskiner"
+        state_class: measurement
+        icon: mdi:washing-machine
+        state: >
+          {{ states.sensor
+             | selectattr('attributes.laundry_number', 'defined')
+             | selectattr('attributes.laundry_number', 'equalto', '9893')
+             | selectattr('attributes.machine_color', 'equalto', 2)
+             | list | count }}
+
+  - binary_sensor:
+      - name: "Min vask kører mens hjemme"
+        unique_id: min_vask_koerer_mens_hjemme
+        icon: mdi:washing-machine
+        # ON når du er hjemme OG mindst én af DINE maskiner kører (mine == true).
+        state: >
+          {{ is_state('person.mads', 'home')
+             and (states.sensor
+                  | selectattr('attributes.mine', 'defined')
+                  | selectattr('attributes.mine')
+                  | list | count) > 0 }}
+        attributes:
+          aktive_maskiner: >
+            {{ states.sensor
+               | selectattr('attributes.mine', 'defined')
+               | selectattr('attributes.mine')
+               | map(attribute='attributes.unit_name')
+               | list | join(', ') }}
+
+      # ---- Valgfri: "en hvilken som helst maskine kører mens hjemme" ----
+      # (tæller naboers vask med — fjern kommentaren hvis du vil bruge den)
+      # - name: "Vaskeri aktivt mens hjemme"
+      #   unique_id: vaskeri_aktivt_mens_hjemme
+      #   icon: mdi:washing-machine
+      #   state: >
+      #     {{ is_state('person.mads', 'home')
+      #        and (states.sensor
+      #             | selectattr('attributes.laundry_number', 'defined')
+      #             | selectattr('attributes.machine_color', 'equalto', 2)
+      #             | list | count) > 0 }}
