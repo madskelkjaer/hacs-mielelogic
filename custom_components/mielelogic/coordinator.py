@@ -22,11 +22,12 @@ from .const import (
     CONF_ACCESS_TOKEN,
     CONF_EXPIRES_AT,
     CONF_REFRESH_TOKEN,
+    CONF_SCAN_INTERVAL,
+    DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     LOGGER,
     TOKEN_REFRESH_MARGIN,
     TRANSACTION_HISTORY_DAYS,
-    UPDATE_INTERVAL,
 )
 
 
@@ -150,11 +151,13 @@ class MieleLogicDataUpdateCoordinator(DataUpdateCoordinator[MieleLogicData]):
             expires_at=entry.data.get(CONF_EXPIRES_AT),
         )
 
+        scan_interval = entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+
         super().__init__(
             hass,
             LOGGER,
             name=DOMAIN,
-            update_interval=UPDATE_INTERVAL,
+            update_interval=timedelta(seconds=scan_interval),
         )
 
     async def _async_update_data(self) -> MieleLogicData:

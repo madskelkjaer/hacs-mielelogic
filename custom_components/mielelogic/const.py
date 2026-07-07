@@ -41,8 +41,15 @@ CLIENT_ID = "YV1ZAQ7BTE9IT2ZBZXLJ"
 # segment in the laundrystates URL.
 DEFAULT_SCOPE = "DA"
 
-# How often the coordinator polls the API
+# How often the coordinator polls the API (default; user-configurable).
 UPDATE_INTERVAL = timedelta(minutes=1)
+
+# Scan interval option (seconds). The remaining time is reported in whole
+# minutes, so polling much faster than this gains little while adding load.
+CONF_SCAN_INTERVAL = "scan_interval"
+DEFAULT_SCAN_INTERVAL = 60
+MIN_SCAN_INTERVAL = 15
+MAX_SCAN_INTERVAL = 3600
 
 # Access tokens are valid for ~15 minutes. Refresh a little early to avoid
 # racing against expiry mid-request.

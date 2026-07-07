@@ -19,6 +19,19 @@
       "already_configured": "This account is already configured."
     }
   },
+  "options": {
+    "step": {
+      "init": {
+        "title": "MieleLogic options",
+        "data": {
+          "scan_interval": "Update interval (seconds)"
+        },
+        "data_description": {
+          "scan_interval": "How often to poll the API. Minimum 15, default 60. Remaining time is reported in whole minutes."
+        }
+      }
+    }
+  },
   "entity": {
     "sensor": {
       "balance": { "name": "Balance" }
