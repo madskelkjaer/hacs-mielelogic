@@ -1,0 +1,39 @@
+# Automatisering: besked når en af DINE maskiner (mine) har <= 5 min tilbage.
+#
+# Tilføj via Indstillinger -> Automatiseringer -> Opret -> "Rediger i YAML",
+# eller læg den i automations.yaml.
+#
+# Ret 'notify.mobile_app_DIN_TELEFON' til dit rigtige notify-id. Find det under
+# Udviklerværktøjer -> Handlinger (Services) -> søg "notify." (fx
+# notify.mobile_app_mads_iphone). Vil du hellere have besked inde i HA, brug
+# service: persistent_notification.create (se nederst).
+
+alias: MieleLogic - vask snart færdig
+description: Notifikation når en af mine maskiner har 5 min eller mindre tilbage.
+mode: single
+trigger:
+  - platform: template
+    value_template: >
+      {{ states.sensor
+         | selectattr('attributes.mine', 'defined')
+         | selectattr('attributes.mine')
+         | selectattr('attributes.remaining_minutes', 'ne', None)
+         | selectattr('attributes.remaining_minutes', 'gt', 0)
+         | selectattr('attributes.remaining_minutes', 'le', 5)
+         | list | count > 0 }}
+action:
+  - variables:
+      maskiner: >
+        {{ states.sensor
+           | selectattr('attributes.mine', 'defined')
+           | selectattr('attributes.mine')
+           | selectattr('attributes.remaining_minutes', 'ne', None)
+           | selectattr('attributes.remaining_minutes', 'gt', 0)
+           | selectattr('attributes.remaining_minutes', 'le', 5)
+           | map(attribute='attributes.unit_name') | list | join(', ') }}
+  - action: notify.send_message
+    target:
+      device_id: 83a506f7a4ec861e40877b33e5c392dd
+    data:
+      title: "Vask snart færdig 🧺"
+      message: "{{ maskiner }} er færdig om under 5 minutter."

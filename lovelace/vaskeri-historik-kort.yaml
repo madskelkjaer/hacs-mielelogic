@@ -7,7 +7,7 @@ cards:
     entities:
       - entity: binary_sensor.min_vask_koerer_mens_hjemme
         name: Min vask (hjemme)
-      - entity: person.mads
+      - entity: person.enmadseautomation
         name: Hjemme/ude
 
   # Logbog: detaljer om hvornår det slog til/fra + hvilke maskiner
@@ -16,4 +16,4 @@ cards:
     hours_to_show: 168
     entities:
       - binary_sensor.min_vask_koerer_mens_hjemme
-      - person.mads
+      - person.enmadseautomation

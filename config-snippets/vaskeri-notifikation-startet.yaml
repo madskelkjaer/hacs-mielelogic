@@ -1,0 +1,38 @@
+# Automatisering: besked når en af DINE maskiner (mine) er startet.
+#
+# Udløses når mindst én maskine bliver "mine" (kører + matcher din seneste
+# transaktion). Bemærk: der kan gå et par minutter fra du starter til
+# betalingen er registreret i /transactions, før mine bliver true.
+#
+# Ret device_id til din egen enhed (samme som i "snart færdig"-automatiseringen).
+
+alias: MieleLogic - vask startet
+description: Notifikation når en af mine maskiner begynder at køre.
+mode: single
+trigger:
+  - platform: template
+    value_template: >
+      {{ states.sensor
+         | selectattr('attributes.mine', 'defined')
+         | selectattr('attributes.mine')
+         | list | count > 0 }}
+action:
+  - variables:
+      maskiner: >
+        {{ states.sensor
+           | selectattr('attributes.mine', 'defined')
+           | selectattr('attributes.mine')
+           | map(attribute='attributes.unit_name')
+           | list | join(', ') }}
+      resttid: >
+        {{ states.sensor
+           | selectattr('attributes.mine', 'defined')
+           | selectattr('attributes.mine')
+           | map(attribute='attributes.remaining_minutes')
+           | select('ne', None) | list | max | default('?') }}
+  - action: notify.send_message
+    target:
+      device_id: 83a506f7a4ec861e40877b33e5c392dd
+    data:
+      title: "Vask startet 🧺"
+      message: "{{ maskiner }} er startet – ca. {{ resttid }} min tilbage."

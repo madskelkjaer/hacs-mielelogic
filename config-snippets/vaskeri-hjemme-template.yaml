@@ -1,7 +1,7 @@
 # Læg dette ind i din configuration.yaml (under en eksisterende `template:` blok,
 # eller tilføj blokken hvis du ikke har en). Genstart/reload templates bagefter.
 #
-# Ret 'person.mads' til dit eget person-entity (Indstillinger -> Personer).
+# Ret 'person.enmadseautomation' til dit eget person-entity (Indstillinger -> Personer).
 
 template:
   # ---- Numeriske "antal i brug"-sensorer til LANGTIDSSTATISTIK ----
@@ -32,13 +32,66 @@ template:
              | selectattr('attributes.machine_color', 'equalto', 2)
              | list | count }}
 
+      # ---- Opdelt efter type (machine_symbol: 0 = vask, 1 = tumbler) ----
+      - name: "Finlandsgade vaskemaskiner i brug"
+        unique_id: finlandsgade_vaske_i_brug
+        unit_of_measurement: "maskiner"
+        state_class: measurement
+        icon: mdi:washing-machine
+        state: >
+          {{ states.sensor
+             | selectattr('attributes.laundry_number', 'defined')
+             | selectattr('attributes.laundry_number', 'equalto', '9894')
+             | selectattr('attributes.machine_symbol', 'equalto', 0)
+             | selectattr('attributes.machine_color', 'equalto', 2)
+             | list | count }}
+
+      - name: "Finlandsgade tørretumblere i brug"
+        unique_id: finlandsgade_tumbler_i_brug
+        unit_of_measurement: "maskiner"
+        state_class: measurement
+        icon: mdi:tumble-dryer
+        state: >
+          {{ states.sensor
+             | selectattr('attributes.laundry_number', 'defined')
+             | selectattr('attributes.laundry_number', 'equalto', '9894')
+             | selectattr('attributes.machine_symbol', 'equalto', 1)
+             | selectattr('attributes.machine_color', 'equalto', 2)
+             | list | count }}
+
+      - name: "Helsingforsgade vaskemaskiner i brug"
+        unique_id: helsingforsgade_vaske_i_brug
+        unit_of_measurement: "maskiner"
+        state_class: measurement
+        icon: mdi:washing-machine
+        state: >
+          {{ states.sensor
+             | selectattr('attributes.laundry_number', 'defined')
+             | selectattr('attributes.laundry_number', 'equalto', '9893')
+             | selectattr('attributes.machine_symbol', 'equalto', 0)
+             | selectattr('attributes.machine_color', 'equalto', 2)
+             | list | count }}
+
+      - name: "Helsingforsgade tørretumblere i brug"
+        unique_id: helsingforsgade_tumbler_i_brug
+        unit_of_measurement: "maskiner"
+        state_class: measurement
+        icon: mdi:tumble-dryer
+        state: >
+          {{ states.sensor
+             | selectattr('attributes.laundry_number', 'defined')
+             | selectattr('attributes.laundry_number', 'equalto', '9893')
+             | selectattr('attributes.machine_symbol', 'equalto', 1)
+             | selectattr('attributes.machine_color', 'equalto', 2)
+             | list | count }}
+
   - binary_sensor:
       - name: "Min vask kører mens hjemme"
         unique_id: min_vask_koerer_mens_hjemme
         icon: mdi:washing-machine
         # ON når du er hjemme OG mindst én af DINE maskiner kører (mine == true).
         state: >
-          {{ is_state('person.mads', 'home')
+          {{ is_state('person.enmadseautomation', 'home')
              and (states.sensor
                   | selectattr('attributes.mine', 'defined')
                   | selectattr('attributes.mine')
@@ -57,7 +110,7 @@ template:
       #   unique_id: vaskeri_aktivt_mens_hjemme
       #   icon: mdi:washing-machine
       #   state: >
-      #     {{ is_state('person.mads', 'home')
+      #     {{ is_state('person.enmadseautomation', 'home')
       #        and (states.sensor
       #             | selectattr('attributes.laundry_number', 'defined')
       #             | selectattr('attributes.machine_color', 'equalto', 2)

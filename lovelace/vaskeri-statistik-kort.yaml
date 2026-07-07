@@ -1,0 +1,15 @@
+type: statistics-graph
+title: Hvornår er vaskeriet travlt?
+# Time-gennemsnit bygges op for evigt (long-term statistics).
+# Sæt period til "hour" for detaljer, eller "day" for et roligere overblik.
+period: hour
+days_to_show: 30
+chart_type: line
+stat_types:
+  - mean
+  - max
+entities:
+  - entity: sensor.finlandsgade_maskiner_i_brug
+    name: Finlandsgade
+  - entity: sensor.helsingforsgade_maskiner_i_brug
+    name: Helsingforsgade
