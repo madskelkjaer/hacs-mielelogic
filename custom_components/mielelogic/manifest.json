@@ -1,7 +1,7 @@
 {
   "domain": "mielelogic",
   "name": "MieleLogic",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "documentation": "https://github.com/madskelkjaer/hacs-mielelogic",
   "issue_tracker": "https://github.com/madskelkjaer/hacs-mielelogic/issues",
   "codeowners": ["@madskelkjaer"],

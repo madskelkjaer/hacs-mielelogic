@@ -95,6 +95,58 @@ class MieleLogicConfigFlow(ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
+    async def async_step_reauth(
+        self, entry_data: dict[str, Any]
+    ) -> ConfigFlowResult:
+        """Handle re-authentication when the stored tokens become invalid."""
+        return await self.async_step_reauth_confirm()
+
+    async def async_step_reauth_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Ask for the password again and refresh the stored tokens."""
+        errors: dict[str, str] = {}
+        entry = self.hass.config_entries.async_get_entry(
+            self.context["entry_id"]
+        )
+        assert entry is not None
+        username = entry.data[CONF_USERNAME]
+
+        if user_input is not None:
+            session = async_get_clientsession(self.hass)
+            client = MieleLogicApiClient(session)
+            try:
+                tokens = await client.async_login(
+                    username, user_input[CONF_PASSWORD]
+                )
+            except MieleLogicAuthError:
+                errors["base"] = "invalid_auth"
+            except MieleLogicConnectionError:
+                errors["base"] = "cannot_connect"
+            except Exception:  # noqa: BLE001 - surface as generic error to the UI
+                LOGGER.exception("Unexpected error during MieleLogic reauth")
+                errors["base"] = "unknown"
+            else:
+                self.hass.config_entries.async_update_entry(
+                    entry,
+                    data={
+                        **entry.data,
+                        CONF_PASSWORD: user_input[CONF_PASSWORD],
+                        CONF_ACCESS_TOKEN: tokens["access_token"],
+                        CONF_REFRESH_TOKEN: tokens["refresh_token"],
+                        CONF_EXPIRES_AT: tokens["expires_at"],
+                    },
+                )
+                await self.hass.config_entries.async_reload(entry.entry_id)
+                return self.async_abort(reason="reauth_successful")
+
+        return self.async_show_form(
+            step_id="reauth_confirm",
+            data_schema=vol.Schema({vol.Required(CONF_PASSWORD): str}),
+            description_placeholders={"username": username},
+            errors=errors,
+        )
+
 
 class MieleLogicOptionsFlow(OptionsFlow):
     """Handle MieleLogic options (e.g. how often to poll)."""
