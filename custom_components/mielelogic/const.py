@@ -34,6 +34,13 @@ TRANSACTION_HISTORY_DAYS = 7
 GRANT_TYPE_PASSWORD = "password"
 GRANT_TYPE_REFRESH = "refresh_token"
 
+# Public client id used by the web app (captured from the token request).
+CLIENT_ID = "YV1ZAQ7BTE9IT2ZBZXLJ"
+
+# OAuth scope == country code. "DA" = Denmark; this also matches the country
+# segment in the laundrystates URL.
+DEFAULT_SCOPE = "DA"
+
 # How often the coordinator polls the API
 UPDATE_INTERVAL = timedelta(minutes=1)
 

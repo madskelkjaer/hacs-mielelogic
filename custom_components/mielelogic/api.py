@@ -9,6 +9,8 @@ import async_timeout
 
 from .const import (
     ACCOUNTS_URL,
+    CLIENT_ID,
+    DEFAULT_SCOPE,
     GRANT_TYPE_PASSWORD,
     GRANT_TYPE_REFRESH,
     LAUNDRY_STATES_URL,
@@ -102,6 +104,8 @@ class MieleLogicApiClient:
                 "grant_type": GRANT_TYPE_PASSWORD,
                 "username": username,
                 "password": password,
+                "client_id": CLIENT_ID,
+                "scope": DEFAULT_SCOPE,
             }
         )
 
@@ -114,6 +118,8 @@ class MieleLogicApiClient:
             {
                 "grant_type": GRANT_TYPE_REFRESH,
                 "refresh_token": self._refresh_token,
+                "client_id": CLIENT_ID,
+                "scope": DEFAULT_SCOPE,
             }
         )
 
