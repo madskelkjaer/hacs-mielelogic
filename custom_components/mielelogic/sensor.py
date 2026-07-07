@@ -201,6 +201,7 @@ class MieleLogicMachineSensor(
         attrs: dict[str, Any] = {
             "remaining_minutes": machine.remaining_minutes,
             "status_text": machine.text1,
+            "status_text2": machine.text2,
             "laundry_number": machine.laundry_number,
             "machine_number": machine.machine_number,
             "machine_type": machine.machine_type,

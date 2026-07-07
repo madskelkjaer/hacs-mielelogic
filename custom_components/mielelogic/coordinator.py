@@ -88,14 +88,19 @@ class MachineData:
 
     @property
     def remaining_minutes(self) -> int | None:
-        """Parse the remaining minutes out of Text1, or None if not running.
+        """Parse the remaining minutes out of the status texts.
 
-        Text1 is "Resttid: 30 min." while running and "Ledig" when free.
+        Different laundries put the countdown in different fields: some in
+        Text1 ("Resttid: 30 min.") and some in Text2 ("Resttid 23 min"). Search
+        both and return the first match, or None if the machine is not running.
         """
-        if not self.text1:
-            return None
-        match = _REMAINING_RE.search(self.text1)
-        return int(match.group(1)) if match else None
+        for text in (self.text1, self.text2):
+            if not text:
+                continue
+            match = _REMAINING_RE.search(text)
+            if match:
+                return int(match.group(1))
+        return None
 
     @property
     def is_running(self) -> bool:
