@@ -1,0 +1,16 @@
+type: custom:heatmap-card
+title: Travlhed – Finlandsgade
+entity: sensor.finlandsgade_maskiner_i_brug
+days: 30
+data:
+  min: 0
+  max: 7
+scale:
+  type: relative
+  steps:
+    - value: 0
+      color: "#1f2933"
+    - value: 0.5
+      color: "#f6c744"
+    - value: 1
+      color: "#dc2626"

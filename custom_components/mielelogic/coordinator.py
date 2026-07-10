@@ -47,10 +47,11 @@ _MACHINE_COLOR_STATUS: dict[int, str] = {
     MACHINE_COLOR_IN_USE: "I brug",
 }
 
-# A running machine is considered "mine" if I have a transaction for that exact
-# machine whose payment time (= cycle start) falls within this window. Cycles
-# are well under a few hours, so this comfortably covers a full wash/dry.
-MINE_MATCH_WINDOW = timedelta(hours=4)
+# A run is "mine" if my payment for that machine lines up with when the run
+# started (washers pay at start). This margin absorbs poll timing and the short
+# delay before a payment appears in the API, while still rejecting a stale
+# payment from an earlier run on the same machine (a neighbour reusing it).
+RUN_START_MARGIN = timedelta(minutes=10)
 
 
 @dataclass
@@ -154,6 +155,11 @@ class MieleLogicDataUpdateCoordinator(DataUpdateCoordinator[MieleLogicData]):
         )
 
         scan_interval = entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+
+        # Tracks when each machine started its current run ("{laundry}_{machine}"
+        # -> datetime). Used to decide whether a payment belongs to the run that
+        # is currently going, rather than a previous run on the same machine.
+        self._run_start: dict[str, object] = {}
 
         super().__init__(
             hass,
@@ -303,20 +309,26 @@ class MieleLogicDataUpdateCoordinator(DataUpdateCoordinator[MieleLogicData]):
             )
 
     def _link_transactions(self, data: MieleLogicData) -> None:
-        """Annotate each machine with its matching transaction.
+        """Annotate each machine with its matching transaction and ownership.
 
         A transaction's ``SerialNumber`` equals the machine's ``LaundryNumber``,
         and together with ``MachineNumber`` it identifies one physical machine.
-        For each machine we attach the most recent matching transaction, and
-        flag it as "mine" if that machine is currently running and the payment
-        happened within :data:`MINE_MATCH_WINDOW`.
-        """
-        if not data.transactions:
-            return
+        We attach the most recent matching transaction (for history), and decide
+        whether the *current run* is mine.
 
+        Ownership is tricky in a shared laundry: a neighbour's run creates no
+        transaction on our account, so a naive "is there a recent payment for
+        this machine" check falsely claims a neighbour's wash that reuses a
+        machine we paid for earlier. To avoid that, we track when each machine
+        started its current run and only claim it if our payment lines up with
+        *this* run's start (payments happen at wash start), not a previous one.
+        """
         now = dt_util.now()
 
         for machine in data.machines.values():
+            key = machine.unique_key
+
+            # Attach the newest matching transaction for the history attributes.
             matches = [
                 txn
                 for txn in data.transactions
@@ -324,23 +336,37 @@ class MieleLogicDataUpdateCoordinator(DataUpdateCoordinator[MieleLogicData]):
                 and str(txn.serial_number) == str(machine.laundry_number)
                 and txn.machine_number == machine.machine_number
             ]
-            if not matches:
+            if matches:
+                # Newest transaction wins (ISO timestamps sort lexically).
+                machine.last_transaction = max(
+                    matches, key=lambda t: t.transaction_time or ""
+                )
+
+            # Reset run tracking once a machine is no longer running.
+            if not machine.is_running:
+                self._run_start.pop(key, None)
                 continue
 
-            # Newest transaction wins (ISO timestamps sort lexically).
-            newest = max(matches, key=lambda t: t.transaction_time or "")
-            machine.last_transaction = newest
+            # Record when we first saw this run; keep it stable across polls.
+            run_start = self._run_start.setdefault(key, now)
 
-            if not machine.is_running or not newest.transaction_time:
+            txn = machine.last_transaction
+            if txn is None or not txn.transaction_time:
                 continue
 
-            paid = dt_util.parse_datetime(newest.transaction_time)
+            paid = dt_util.parse_datetime(txn.transaction_time)
             if paid is None:
                 continue
             # TransactionTime carries no timezone; treat it as local time.
             if paid.tzinfo is None:
                 paid = paid.replace(tzinfo=now.tzinfo)
-            if now - paid <= MINE_MATCH_WINDOW:
+
+            # The payment belongs to this run only if it happened around when
+            # this run started (washers pay at start). A small margin absorbs
+            # poll timing and the delay before a payment shows up in the API.
+            # A stale payment from a previous run is far older than run_start
+            # and is correctly rejected -> no false "mine" on a neighbour's run.
+            if run_start - RUN_START_MARGIN <= paid <= now + RUN_START_MARGIN:
                 machine.mine_running = True
 
     def _persist_tokens(self) -> None:
